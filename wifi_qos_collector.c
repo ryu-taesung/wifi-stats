@@ -1,5 +1,5 @@
 /*
- * wifi_qos_collector.c  â  continuous WiâFi QoS publisher
+ * wifi_qos_collector.c  --  continuous Wi-Fi QoS publisher
  *
  * Build:
  *   gcc -Wall -O2 wifi_qos_collector.c \
@@ -9,12 +9,14 @@
  * Usage:
  *   sudo wifi_qos_collector [-i <ms>] <iface> [peer-mac]
  *
- *   -i <ms>   heartbeat interval (default 1000â¯ms). 0 = disable timer.
+ *   -i <ms>   heartbeat interval (default 1000 ms). 0 = disable timer.
  *
  * Destination socket:
  *   $QOS_SOCK overrides, otherwise /run/user/<uid>/wifi_qos.sock
  *
- * Â©â¯2025 0âBSD / public domain.
+ * MIT License
+ * 
+ * Copyright (c) 2025 ryu-taesung
  */
 #define _GNU_SOURCE
 #include <arpa/inet.h>
@@ -41,7 +43,7 @@
 #include <libnl3/netlink/genl/genl.h>
 #include <libnl3/netlink/netlink.h>
 
-/* -------- wire format (24â¯bytes) -------------------------------------- */
+/* -------- wire format (24 bytes) -------------------------------------- */
 struct wifi_qos_msg {
     uint64_t ts_ns;     /* CLOCK_REALTIME in ns */
     int32_t  rssi_dbm;  /* signed */
@@ -53,14 +55,14 @@ struct wifi_qos_msg {
 /* --------------------------------------------------------------------- */
 static void fatal(const char *why) { perror(why); exit(EXIT_FAILURE); }
 
-/* subscribe to multicast group by name â silently ignore if missing */
+/* subscribe to multicast group by name - silently ignore if missing */
 static void join_grp(struct nl_sock *s, const char *name)
 {
     int id = genl_ctrl_resolve_grp(s, "nl80211", name);
     if (id >= 0) nl_socket_add_membership(s, id);
 }
 
-/* fetch BSSID via WirelessâExtensions ioctl (STA mode) */
+/* fetch BSSID via Wireless-Extensions ioctl (STA mode) */
 static int get_bssid(const char *ifname, unsigned char mac[6])
 {
     int s = socket(AF_INET, SOCK_DGRAM, 0);
@@ -128,7 +130,7 @@ static int parse_cb(struct nl_msg *msg, void *arg)
 /* --------------------------------------------------------------------- */
 int main(int argc, char *argv[])
 {
-    int interval_ms = 1000;          /* default heartbeat 1â¯s */
+    int interval_ms = 1000;          /* default heartbeat 1s */
     int opt;
     while ((opt = getopt(argc, argv, "i:")) != -1) {
         if (opt == 'i') interval_ms = atoi(optarg);
@@ -136,7 +138,7 @@ int main(int argc, char *argv[])
     argc -= optind; argv += optind;
     if (argc < 1 || argc > 2) {
         fprintf(stderr,
-          "Usage: %s [-i <ms>] <interface> [peerâmac]\n", argv[0]);
+          "Usage: wifi_qos_collector [-i <ms>] <interface> [peer-mac]\n");
         return EXIT_FAILURE;
     }
     const char *ifname = argv[0];
@@ -147,6 +149,7 @@ int main(int argc, char *argv[])
         static char defpath[128];
         snprintf(defpath, sizeof(defpath),
                  "/run/user/%u/wifi_qos.sock", getuid());
+        fprintf(stderr, "Using default socket path: %s\n", defpath);
         path = defpath;
     }
     uds_fd = socket(AF_UNIX, SOCK_DGRAM | SOCK_NONBLOCK, 0);
@@ -154,7 +157,9 @@ int main(int argc, char *argv[])
 
     memset(&uds_addr, 0, sizeof(uds_addr));
     uds_addr.sun_family = AF_UNIX;
-    strncpy(uds_addr.sun_path, path, sizeof(uds_addr.sun_path) - 1);
+    if (strlen(path) >= sizeof(uds_addr.sun_path))
+      fatal("QOS_SOCK path too long");
+    memcpy(uds_addr.sun_path, path, strlen(path) + 1);   /* copy NUL too */
     /* (sender side need not bind) */
 
     /* ---------- netlink setup ---------------------------------------- */
