@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "unix-dgram": "^2.0.6"
+  }
+}
