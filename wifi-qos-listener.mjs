@@ -35,7 +35,7 @@ export default WifiQosSource;
 
 /* demo */
 const qos = new WifiQosSource();
-qos.on('sample', s => console.log(`RSSI ${s.rssi}â¯dBm eff ${s.efficiency.toFixed(2)}â¯%`));
+qos.on('sample', s => console.log(`RSSI ${s.rssi} dBm eff ${s.efficiency.toFixed(2)}%`));
 qos.on('ready', () => console.log('listener bound:', SOCK_PATH));
 qos.on('error', err => console.error('qos err:', err));
 
