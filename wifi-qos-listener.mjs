@@ -35,7 +35,13 @@ export default WifiQosSource;
 
 /* demo */
 const qos = new WifiQosSource();
-qos.on('sample', s => console.log(`RSSI ${s.rssi} dBm eff ${s.efficiency.toFixed(2)}%`));
+qos.on('sample', s => {
+  let signal = s.rssi;
+  let signal_percent = 2 * (signal + 100);
+  if (signal_percent > 100) signal_percent = 100;
+  if (signal_percent < 0) signal_percent = 0;
+  console.log(`RSSI ${s.rssi} dBm (${signal_percent}%), eff ${s.efficiency.toFixed(2)}%`);
+});
 qos.on('ready', () => console.log('listener bound:', SOCK_PATH));
 qos.on('error', err => console.error('qos err:', err));
 
